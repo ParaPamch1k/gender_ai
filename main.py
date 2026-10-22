@@ -1,5 +1,5 @@
-import torch, random, pandas
 import numpy as np
+import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
@@ -7,58 +7,40 @@ import matplotlib.pyplot as plt
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super(NeuralNetwork, self).__init__()
-
         self.hidden = nn.Linear(2, 8)
         self.output = nn.Linear(8, 1)
 
     def forward(self, x):
         x = torch.relu(self.hidden(x))
-        x = self.output(x)
-        return x
-   
-female_names = [
-    "Alice","Natasha","Kate","Oksana","Julia","Mila","Irina","Diana","Sofia","Maria",
-    "Vera","Nastya","Polina","Daria","Anna","Lydia","Elena","Zhanna","Olga","Tatyana"
-]
+        return self.output(x)
 
-male_names = [
-    "Andrey","Sergey","Pavel","Egor","Artem","Gleb","Nikita","Oleg","Fedor","Grisha",
-    "Roman","Ivan","Dmitry","Mikhail","Alexey","Vladimir","Yan","Stas","Kirill","Petr"
-]
+def generate_dataset(num_samples=1000):
+    genders = np.random.choice([0, 1], size=num_samples)
+    
+    # Генерация роста и веса на основе пола без лишних циклов
+    heights = np.where(genders == 1, 
+                       np.random.normal(165, 6, num_samples), 
+                       np.random.normal(178, 7, num_samples))
+    
+    weights = np.where(genders == 1, 
+                       np.random.normal(60, 8, num_samples), 
+                       np.random.normal(78, 10, num_samples))
+    
+    X = np.column_stack((heights.round(1), weights.round(1)))
+    return X, genders
 
-def generate_person():
-    # 0 = male, 1 = female
-    gender = np.random.choice([0, 1])
-
-    if gender == 1:
-        name = random.choice(female_names)
-        height = round(np.random.normal(165, 6), 1)  
-        weight = round(np.random.normal(60, 8), 1)   
-    else:
-        name = random.choice(male_names)
-        height = round(np.random.normal(178, 7), 1)  
-        weight = round(np.random.normal(78, 10), 1)  
-
-    return name, height, weight, gender
-
-dataset = [generate_person() for _ in range(1000)]
-
-data_table = pandas.DataFrame(dataset, columns=["Name", "Height", "Weight", "Gender"])
-X = data_table[["Height", "Weight"]].values
-y = data_table["Gender"].values
+X, y = generate_dataset(1000)
 
 X_tensor = torch.tensor(X, dtype=torch.float32)
 y_tensor = torch.tensor(y, dtype=torch.float32).view(-1, 1)  
 
 network = NeuralNetwork()
-
 def_loss = nn.BCEWithLogitsLoss()
 def_optimize = optim.Adam(network.parameters(), lr=0.01)
 
 loss_history = []
 
-epochs = 500
-for epoch in range(epochs):
+for epoch in range(500):
     preds = network(X_tensor)
     loss = def_loss(preds, y_tensor)
     
@@ -100,7 +82,7 @@ while True:
 
     print("\nRESULT:")
     print(f"Probability of female: {prob:.3f}")
-    print("Probability of male: " + str(1 - prob))
+    print(f"Probability of male: {1 - prob:.3f}")
     print("Predicted gender:", "Female" if gender == 1 else "Male")
 
     again = input("\nDo you want to test another person? (y/n): ")
